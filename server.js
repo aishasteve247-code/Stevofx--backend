@@ -1,47 +1,55 @@
-const express = require('express');
-const cors = require('cors');
-const { createClient } = require('@supabase/supabase-js');
-const app = express();
-
-app.use(express.json());
-app.use(cors());
-
-// SUPABASE CONNECTION
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-
-app.get('/', (req, res) => {
-  res.json({ message: 'Stevofx Backend is Live' });
-});
-
-// M-PESA STK PUSH
-app.post('/stkpush', async (req, res) => {
-  res.json({ message: 'STK Push endpoint ready' });
-});
-
-// M-PESA CALLBACK
-app.post('/callback', async (req, res) => {
-  try {
-    const callbackData = req.body.Body.stkCallback;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stevofx Trading Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; }
+    .container { max-width: 900px; margin: auto; }
+    h1 { color: #22c55e; text-align: center; }
+    .card { background: #1e293b; padding: 20px; border-radius: 12px; margin: 15px 0; }
+    .balance { font-size: 32px; color: #22c55e; }
+    button { background: #22c55e; color: black; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 5px; }
+    input { padding: 10px; border-radius: 8px; border: none; width: 200px; margin-right: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>STEVOFX TRADING</h1>
     
-    if(callbackData.ResultCode === 0){
-      const items = callbackData.CallbackMetadata.Item;
-      const amount = items.find(i => i.Name === 'Amount').Value;
-      const phone = items.find(i => i.Name === 'PhoneNumber').Value;
-      const phoneStr = phone.toString();
+    <div class="card">
+      <h2>Account Balance</h2>
+      <p class="balance">$1,250.00</p>
+    </div>
 
-      const { data: user } = await supabase.from('users').select('balance').eq('phone', phoneStr).single();
-      const newBalance = Number(user.balance) + Number(amount);
+    <div class="card">
+      <h2>Deposit via M-PESA</h2>
+      <input type="text" id="phone" placeholder="07xxxxxxxx">
+      <input type="number" id="amount" placeholder="Amount KES">
+      <button onclick="deposit()">Deposit Now</button>
+      <p id="status"></p>
+    </div>
+
+    <div class="card">
+      <h2>Trade</h2>
+      <button>BUY EUR/USD</button>
+      <button>SELL EUR/USD</button>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://stevofx-backend.onrender.com";
+
+    async function deposit() {
+      const phone = document.getElementById('phone').value;
+      const amount = document.getElementById('amount').value;
+      document.getElementById('status').innerText = "Sending M-PESA request...";
       
-      await supabase.from('users').update({ balance: newBalance }).eq('phone', phoneStr);
-      
-      console.log(`Credited ${amount} to ${phoneStr}. New balance: ${newBalance}`);
+      setTimeout(() => {
+        document.getElementById('status').innerText = "STK Push sent to " + phone;
+      }, 1000)
     }
-    res.json({ResultCode: 0, ResultDesc: "Success"});
-  } catch(e){
-    console.log(e);
-    res.json({ResultCode: 1, ResultDesc: "Failed"});
-  }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+  </script>
+</body>
+</html>
